@@ -10,6 +10,8 @@ JOIN UPDATE
 
 테이블 관계
 
+1-m관계에서 1쪽을 update 할수없다. ora-30926 에러 발생
+
 */
 
 -- JOIN UPDATE 연습용 테이블 생성
