@@ -1,0 +1,45 @@
+/*
+
+JOIN UPDATE
+  2개 이상의 테이블을 서로 연결하여 원하는 값으로 타겟 테이블의 값을 변경하는 방법
+
+  UPDATE 문장 2가지 
+  MERGE 문장 2가지
+  루핑형 SQL 을 사용해 PL/SQL로 처리하는 방법
+  WAS 기준 루핑형 SQL로 처리하는 방법
+
+테이블 관계
+
+*/
+
+-- JOIN UPDATE 연습용 테이블 생성
+-- TABLE MEMBERS = 회원 
+-- TABLE ADDR = 지역
+
+-- MEMBERS = ADDR : M = 1 관계
+
+CREATE TABLE MEMBERS
+(
+	MID			CHAR(4)			PRIMARY KEY,
+	MNAME		VARCHAR2(30)	NOT NULL,
+	AID			CHAR(4)			NOT NULL
+);
+
+INSERT INTO MEMBERS VALUES ('M001','홍길동', 'A001');
+INSERT INTO MEMBERS VALUES ('M002','홍길순', 'A003');
+INSERT INTO MEMBERS VALUES ('M003','전우치', 'A004');
+INSERT INTO MEMBERS VALUES ('M004','김호동', 'A001');
+
+CREATE TABLE ADDR
+(
+	AID		CHAR(4)			PRIMARY KEY,
+	ANAME	VARCHAR2(30)	NOT NULL
+);
+
+INSERT INTO ADDR VALUES ('A001','서울');
+INSERT INTO ADDR VALUES ('A002','부산');
+INSERT INTO ADDR VALUES ('A003','경남');
+INSERT INTO ADDR VALUES ('A004','대구');
+INSERT INTO ADDR VALUES ('A005','거제');
+
+--COMMIT;
