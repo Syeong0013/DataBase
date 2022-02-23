@@ -1,0 +1,430 @@
+-- 모든 학생들의 수강신청 내역
+SELECT 
+	*
+FROM
+	STUDENTS_TBL A,
+	STUDENTS_TIME_TBL B
+WHERE
+	A.STU_ID = B.STU_ID(+)
+;
+
+-- 1) 학과별 수강신청을 하지 않은 학생 목록 = 7명
+-- 2) 단과대학이름, 학과명, 수강신청하지않은 학생 수, RANK()
+
+-- 1.1)
+SELECT
+	T2.STU_ID AS 학생ID, 
+	T2.STU_NAME AS 학생이름, 
+	T3.COM_VAL AS 학과명
+FROM
+	STUDENTS_TIME_TBL T1,
+	STUDENTS_TBL T2,
+	COMMONS_TBL T3
+WHERE
+		T1.STU_ID(+) = T2.STU_ID
+	AND T2.STU_DEPT_GRP = T3.GRP_ID
+	AND T2.STU_DEPT = T3.COM_ID
+	AND T1.STU_ID IS NULL
+ORDER BY T2.STU_DEPT
+;
+	/*
+	STU045	홍길동45		경찰행정학과
+	STU042	홍길동42		경제학과
+	STU011	홍길동11		기계공학과
+	STU063	홍길동63		선박해양공학과
+	STU071	홍길동71		선박해양공학과
+	STU062	홍길동62		선박해양공학과
+	STU072	홍길동72		선박해양공학과
+	*/
+
+-- 1.2)
+SELECT
+	T3.COM_VAL AS 학과명,
+	COUNT(*) AS 수강신청X
+FROM
+	STUDENTS_TIME_TBL T1,
+	STUDENTS_TBL T2,
+	COMMONS_TBL T3
+WHERE
+		T1.STU_ID(+) = T2.STU_ID
+	AND T2.STU_DEPT_GRP = T3.GRP_ID
+	AND T2.STU_DEPT = T3.COM_ID
+	AND T1.STU_ID IS NULL
+GROUP BY T3.COM_VAL
+;
+	/*
+	기계공학과		1
+	경제학과			1
+	선박해양공학과	4
+	경찰행정학과		1
+	*/
+
+
+-- 1.3) RANK 먹이기
+	SELECT
+		T3.COM_VAL AS 학과명,
+		COUNT(*) AS 수강신청X,
+		RANK() OVER(ORDER BY COUNT(*) DESC) AS 순위  -- 선박해양공학과를 제외하면 같은 수이기 때문에 다 1등
+	FROM
+		STUDENTS_TIME_TBL T1,
+		STUDENTS_TBL T2,
+		COMMONS_TBL T3
+	WHERE
+			T1.STU_ID(+) = T2.STU_ID
+		AND T2.STU_DEPT_GRP = T3.GRP_ID
+		AND T2.STU_DEPT = T3.COM_ID
+		AND T1.STU_ID IS NULL
+	GROUP BY T3.COM_VAL
+;
+	/*
+	선박해양공학과	4	1
+	경찰행정학과		1	2
+	기계공학과		1	2
+	경제학과			1	2
+	*/
+
+
+-- 1.4) 단과대학이름
+SELECT
+	T4.COM_VAL AS 단과대학명,
+	T3.COM_VAL AS 학과명,
+	COUNT(*) AS 수강신청X,
+	RANK() OVER(ORDER BY COUNT(*) DESC) AS 순위
+FROM
+	STUDENTS_TIME_TBL T1,
+	STUDENTS_TBL T2,
+	COMMONS_TBL T3,
+	COMMONS_TBL T4
+WHERE
+		T1.STU_ID(+) = T2.STU_ID
+	AND T2.STU_DEPT_GRP = T3.GRP_ID
+	AND T2.STU_DEPT = T3.COM_ID
+	AND T3.PARENT_ID = T4.COM_ID
+	AND T4.GRP_ID = 'GRP002'
+	AND T1.STU_ID IS NULL
+GROUP BY T4.COM_VAL, T3.COM_VAL
+;
+	/*
+	공과대학		선박해양공학과	4	1
+	법학대학		경찰행정학과		1	2
+	경상대학		경제학과			1	2
+	공과대학		기계공학과		1	2
+	*/
+
+
+
+-- 교수테이블 -- 교수아이디, 교수명, 소속학과
+SELECT 
+	T1.PRO_ID, 
+	T1.PRO_NAME, 
+	T2.COM_VAL, 
+	T3.COM_VAL
+FROM
+	PROFESSORS_TBL T1, 
+	COMMONS_TBL T2,
+	COMMONS_TBL T3
+WHERE
+		T1.PRO_DEPT_GRP = T2.GRP_ID
+	AND T1.PRO_DEPT = T2.COM_ID
+	AND T2.PARENT_ID = T3.COM_ID
+	AND T3.GRP_ID = 'GRP002'
+ORDER BY T1.PRO_ID ASC 
+;
+	/*
+	PRO001	전우치01		수학과			자연과학대학
+	PRO002	전우치02		경찰행정학과		법학대학
+	PRO003	전우치03		영어영문학과		인문과학대학
+	PRO004	전우치04		경제학과			경상대학
+	PRO005	전우치05		신소재공학과		공과대학
+	PRO006	전우치06		정치외교학과		사회과학대학
+	PRO007	전우치07		경찰행정학과		법학대학
+	PRO008	전우치08		재료공학과		공과대학
+	PRO009	전우치09		물리학과			자연과학대학
+	PRO010	전우치10		경찰행정학과		법학대학
+	PRO011	전우치11		무역학과			경상대학
+	PRO012	전우치12		법학과			법학대학
+	PRO013	전우치13		원자력공학과		공과대학
+	PRO014	전우치14		사학과			인문과학대학
+	PRO015	전우치15		법학과			법학대학
+	PRO016	전우치16		경제학과			경상대학
+	PRO017	전우치17		금속재료공학과	공과대학
+	PRO018	전우치18		법학과			법학대학
+	PRO019	전우치19		영어영문학과		인문과학대학
+	PRO020	전우치20		컴퓨터통계학과	자연과학대학
+	PRO021	전우치21		신문방송학과		사회과학대학
+	PRO022	전우치22		경영학과			경상대학
+	PRO023	전우치23		영어영문학과		인문과학대학
+	PRO024	전우치24		철학과			인문과학대학
+	PRO025	전우치25		화학과			자연과학대학
+	PRO026	전우치26		선박해양공학과	공과대학
+	PRO027	전우치27		경영학과			경상대학
+	PRO028	전우치28		화학과			자연과학대학
+	PRO029	전우치29		무역학과			경상대학
+	PRO030	전우치30		국어국문학과		인문과학대학
+	PRO031	전우치31		물리학과			자연과학대학
+	PRO032	전우치32		식품영양학과		자연과학대학
+	PRO033	전우치33		컴퓨터통계학과	자연과학대학
+	PRO034	전우치34		신문방송학과		사회과학대학
+	PRO035	전우치35		신문방송학과		사회과학대학
+	PRO036	전우치36		철학과			인문과학대학
+	PRO037	전우치37		수학과			자연과학대학
+	PRO038	전우치38		무역학과			경상대학
+	PRO039	전우치39		기계공학과		공과대학
+	PRO040	전우치40		국어국문학과		인문과학대학
+	*/
+	
+	
+-- 학생들의 학과 테이블
+SELECT	
+	T1.COM_VAL,
+	T2.STU_ID,
+	T2.STU_NAME
+FROM
+	COMMONS_TBL T1, 
+	STUDENTS_TBL T2
+WHERE
+		T1.COM_ID = T2.STU_DEPT
+	AND T1.GRP_ID = 'GRP002' 		--GRP_ID(그룹코드)를 지정하지않으면 COM_ID(공통코드)가 중복되는 값들이 출력	
+ORDER BY T1.COM_ID
+;
+
+
+/*
+	국어국문학과		STU046	홍길동46
+	국어국문학과		STU017	홍길동17
+	국어국문학과		STU034	홍길동34
+	국어국문학과		STU021	홍길동21
+	사학과			STU066	홍길동66
+	사학과			STU064	홍길동64
+	사학과			STU061	홍길동61
+	사학과			STU032	홍길동32
+	사학과			STU002	홍길동02
+	영어영문학과		STU086	홍길동86
+	영어영문학과		STU081	홍길동81
+	영어영문학과		STU073	홍길동73
+	영어영문학과		STU058	홍길동58
+	영어영문학과		STU059	홍길동59
+	영어영문학과		STU008	홍길동08
+	영어영문학과		STU079	홍길동79
+	영어영문학과		STU038	홍길동38
+	영어영문학과		STU037	홍길동37
+	물리학과			STU039	홍길동39
+	물리학과			STU018	홍길동18
+	물리학과			STU023	홍길동23
+	화학과			STU013	홍길동13
+	화학과			STU043	홍길동43
+	화학과			STU055	홍길동55
+	화학과			STU026	홍길동26
+	화학과			STU028	홍길동28
+	수학과			STU060	홍길동60
+	수학과			STU052	홍길동52
+	수학과			STU048	홍길동48
+	수학과			STU019	홍길동19
+	수학과			STU010	홍길동10
+	수학과			STU040	홍길동40
+	컴퓨터통계학과	STU078	홍길동78
+	컴퓨터통계학과	STU088	홍길동88
+	컴퓨터통계학과	STU015	홍길동15
+	컴퓨터통계학과	STU004	홍길동04
+	컴퓨터통계학과	STU077	홍길동77
+	법학과			STU003	홍길동03
+	법학과			STU049	홍길동49
+	법학과			STU050	홍길동50
+	법학과			STU056	홍길동56
+	법학과			STU075	홍길동75
+	법학과			STU082	홍길동82
+	법학과			STU083	홍길동83
+	법학과			STU090	홍길동90
+	경찰행정학과		STU045	홍길동45
+	경찰행정학과		STU036	홍길동36
+	경찰행정학과		STU033	홍길동33
+	경찰행정학과		STU030	홍길동30
+	경찰행정학과		STU029	홍길동29
+	경찰행정학과		STU027	홍길동27
+	신문방송학과		STU005	홍길동05
+	신문방송학과		STU051	홍길동51
+	신문방송학과		STU068	홍길동68
+	신문방송학과		STU069	홍길동69
+	신문방송학과		STU035	홍길동35
+	신문방송학과		STU084	홍길동84
+	신문방송학과		STU085	홍길동85
+	경영학과			STU001	홍길동01
+	경영학과			STU006	홍길동06
+	경영학과			STU007	홍길동07
+	경제학과			STU041	홍길동41
+	경제학과			STU042	홍길동42
+	무역학과			STU009	홍길동09
+	무역학과			STU057	홍길동57
+	금속재료공학과	STU016	홍길동16
+	금속재료공학과	STU012	홍길동12
+	기계공학과		STU011	홍길동11
+	기계공학과		STU031	홍길동31
+	선박해양공학과	STU063	홍길동63
+	선박해양공학과	STU071	홍길동71
+	선박해양공학과	STU062	홍길동62
+	선박해양공학과	STU072	홍길동72
+	신소재공학과		STU014	홍길동14
+	신소재공학과		STU087	홍길동87
+	신소재공학과		STU089	홍길동89
+	신소재공학과		STU074	홍길동74
+	원자력공학과		STU020	홍길동20
+	원자력공학과		STU022	홍길동22
+	원자력공학과		STU044	홍길동44
+	재료공학과		STU070	홍길동70
+	재료공학과		STU025	홍길동25
+	재료공학과		STU024	홍길동24
+	재료공학과		STU054	홍길동54
+	재료공학과		STU067	홍길동67
+	재료공학과		STU080	홍길동80
+	재료공학과		STU053	홍길동53
+	재료공학과		STU065	홍길동65
+	재료공학과		STU047	홍길동47
+	재료공학과		STU076	홍길동76
+*/
+	
+	
+-- 학과별로 학생이 몇 명인지 
+SELECT
+	T1.COM_ID AS 학과코드, 
+	T1.COM_VAL AS 학과명,
+	COUNT(*) AS 학생수
+FROM
+	COMMONS_TBL T1,
+	STUDENTS_TBL T2
+WHERE
+	T1.COM_ID = T2.STU_DEPT
+	AND T1.GRP_ID = 'GRP002'
+GROUP BY 
+	T1.COM_ID, 
+	T1.COM_VAL
+;
+	
+/*
+	COM0020	경영학과			3
+	COM0022	무역학과			2
+	COM0027	원자력공학과		3
+	COM0016	경찰행정학과		6
+	COM0008	영어영문학과		9
+	COM0007	사학과			5
+	COM0011	화학과			5
+	COM0014	컴퓨터통계학과	5
+	COM0017	신문방송학과		7
+	COM0026	신소재공학과		4
+	COM0006	국어국문학과		4
+	COM0012	수학과			6
+	COM0028	재료공학과		10
+	COM0015	법학과			8
+	COM0024	기계공학과		2
+	COM0023	금속재료공학과	2
+	COM0010	물리학과			3
+	COM0021	경제학과			2
+	COM0025	선박해양공학과	4
+*/
+	
+
+-- 학생 별 신청한 과목 수, 총 학점
+SELECT 
+	T2.STU_ID AS 학생ID, 
+	T2.STU_NAME AS 학생이름, 
+	SUM(T3.SUB_CREDIT) AS 신청학점
+FROM
+	STUDENTS_TIME_TBL T1,
+	STUDENTS_TBL T2,
+	SUBJECTS_TBL T3
+WHERE
+		T1.STU_ID = T2.STU_ID
+	AND T1.SUB_ID = T3.SUB_ID
+GROUP BY T2.STU_ID, T2.STU_NAME
+ORDER BY T2.STU_ID
+;
+/*
+	STU001	홍길동01		17
+	STU002	홍길동02		12
+	STU003	홍길동03		15
+	STU004	홍길동04		11
+	STU005	홍길동05		9
+	STU006	홍길동06		13
+	STU007	홍길동07		41
+	STU008	홍길동08		15
+	STU009	홍길동09		22
+	STU010	홍길동10		15
+	STU012	홍길동12		10
+	STU013	홍길동13		13
+	STU014	홍길동14		16
+	STU015	홍길동15		11
+	STU016	홍길동16		10
+	STU017	홍길동17		11
+	STU018	홍길동18		13
+	STU019	홍길동19		14
+	STU020	홍길동20		7
+	STU021	홍길동21		9
+	STU022	홍길동22		10
+	STU023	홍길동23		13
+	STU024	홍길동24		11
+	STU025	홍길동25		20
+	STU026	홍길동26		13
+	STU027	홍길동27		17
+	STU028	홍길동28		9
+	STU029	홍길동29		16
+	STU030	홍길동30		9
+	STU031	홍길동31		8
+	STU032	홍길동32		13
+	STU033	홍길동33		13
+	STU034	홍길동34		16
+	STU035	홍길동35		18
+	STU036	홍길동36		36
+	STU037	홍길동37		12
+	STU038	홍길동38		13
+	STU039	홍길동39		17
+	STU040	홍길동40		14
+	STU041	홍길동41		14
+	STU043	홍길동43		14
+	STU044	홍길동44		13
+	STU046	홍길동46		16
+	STU047	홍길동47		12
+	STU048	홍길동48		11
+	STU049	홍길동49		20
+	STU050	홍길동50		17
+	STU051	홍길동51		18
+	STU052	홍길동52		15
+	STU053	홍길동53		5
+	STU054	홍길동54		14
+	STU055	홍길동55		11
+	STU056	홍길동56		17
+	STU057	홍길동57		42
+	STU058	홍길동58		15
+	STU059	홍길동59		18
+	STU060	홍길동60		9
+	STU061	홍길동61		16
+	STU064	홍길동64		9
+	STU065	홍길동65		10
+	STU066	홍길동66		13
+	STU067	홍길동67		13
+	STU068	홍길동68		15
+	STU069	홍길동69		11
+	STU070	홍길동70		22
+	STU073	홍길동73		10
+	STU074	홍길동74		11
+	STU075	홍길동75		19
+	STU076	홍길동76		7
+	STU077	홍길동77		11
+	STU078	홍길동78		10
+	STU079	홍길동79		15
+	STU080	홍길동80		21
+	STU081	홍길동81		15
+	STU082	홍길동82		12
+	STU083	홍길동83		13
+	STU084	홍길동84		13
+	STU085	홍길동85		18
+	STU086	홍길동86		13
+	STU087	홍길동87		21
+	STU088	홍길동88		14
+	STU089	홍길동89		9
+	STU090	홍길동90		10
+*/
+
+
+
+
+
+	

@@ -1,0 +1,55 @@
+GRPCOMMONS_TBL (2)
+	GRP_ID		-- 그룹코드
+	GRP_NAME	-- 그룹코드 명
+
+COMMONS_TBL
+	COM_ID		-- 공통코드
+	GRP_ID		-- 그룹코드
+	COM_VAL		-- 공통코드 명
+	COM_LVL		-- 공통코드 레벨
+	PARENT_ID	-- 부모코드
+
+STUDENTS_TBL (90)
+	STU_ID		-- 학생키
+	STU_NAME	-- 학생이름
+	STU_TEL		-- 학생연락처
+	STU_ADDR_GRP	-- 학생주소 그룹코드
+	STU_ADDR	-- 학생주소 동 코드 
+	STU_ADDR2	-- 학생주소 최상위 지역코드
+	STU_DEPT_GRP	-- 학생학과 그룹코드
+	STU_DEPT	-- 학생학과 코드
+
+PROFESSORS_TBL (40)
+	PRO_ID		-- 교수키 
+	PRO_NAME	-- 교수이름
+	PRO_ADDR_GRP	-- 교수주소 그룹코드
+	PRO_ADDR	-- 교수주소 동코드
+	PRO_ADDR2	-- 교수주소 최상위지역코드
+	PRO_DEPT_GRP	-- 교수학과 그룹코드
+	PRO_DEPT	-- 교수학과 코드
+
+SUBJECTS_TBL (89)
+	SUB_ID		-- 과목코드
+	DO_YEAR		-- 해당년도
+	SEMESTER	-- 학기
+	DEPT_GRP	-- 학과 그룹코드
+	DEPT_CODE	-- 학과 코드
+	PRO_ID		-- 교수 코드
+	SUB_NAME	-- 과목명
+	SUB_CREDIT	-- 해당학점
+
+STUDENTS_TIME_TBL 
+	STU_ID		-- 학생키
+	SUB_ID		-- 과목아이디 
+	DO_YEAR		-- 해당년도
+	SEMESTER	-- 학기
+	REG_TIME	-- 등록시간
+
+SCORES_TBL
+	STU_ID		-- 학생키
+	SUB_ID		-- 과목아이디
+	DO_YEAR		-- 해당년도
+	SEMESTER	-- 학기
+	GUBUN		-- 중간기말구분
+	SCORE		-- 시험성적
+	EXAM_DATE	
