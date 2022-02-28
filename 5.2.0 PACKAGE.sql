@@ -4,7 +4,7 @@
 	- 프로시저, 함수 등을 집합해놓은 객체
 
 
-	선언부, 본문, 실행부로 이루어져있음
+	선언부, 본문으로 이루어져있음
 	
 	
 	[구문형식]
@@ -36,8 +36,11 @@ SELECT * FROM STUDENTS_TBL
 WHERE STU_ID LIKE '%9%'
 OR STU_NAME LIKE '%김%'
 ;
+
 -- 아이디에 특정 문자 검색하고 싶을 때
 SELECT * FROM STUDENTS_TBL 
 WHERE STU_ID LIKE '%' || :IN_STU_ID || '%'
 AND STU_NAME LIKE '%' || :IN_STU_NAME || '%'
 ;
+
+
