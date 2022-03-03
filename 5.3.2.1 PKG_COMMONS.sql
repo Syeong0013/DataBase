@@ -70,4 +70,25 @@ create or replace NONEDITIONABLE PACKAGE PKG_COMMONS AS
 		,IN_GRP_ID		IN 	VARCHAR2
 	);
 	
+
+
+
+-------------------------------------------------------------------------------
+	-- COMMONS_TBL 단과대학
+	PROCEDURE PROC_SEL_COLLEGE
+	(
+		 O_CUR			OUT	SYS_REFCURSOR
+	);
+
+	-- COMMONS_TBL 학과
+	PROCEDURE PROC_SEL_PART
+	(
+		 IN_PARENT_ID	IN	VARCHAR2
+		,O_CUR			OUT	SYS_REFCURSOR
+	);
+
 END PKG_COMMONS;
+
+
+
+
