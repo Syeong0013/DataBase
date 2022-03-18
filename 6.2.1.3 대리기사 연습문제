@@ -1,0 +1,382 @@
+
+--A. 쿼리
+
+--1. 대리운전 이용자의 예약 현황을 보여주세요 (5점)
+       --(이용자 연락처, 출발지, 도착지, 대리운전비)
+		SELECT R_TEL, R_STR, R_DEST, R_PAY 
+		FROM RESERVATION_TBL
+		;
+		
+--2. 대리기사가 선택한 대리운전 결정 리스트를 보여주세요(5점)
+        --(대리운전기사 아이디, 대리운전기사 이름, 이용자연락처, 출발지, 도착지 대리운전비)
+		SELECT 
+			 T2.DR_ID, T2.DR_NAME
+			,T3.R_TEL, T3.R_ID, T3.R_STR, T3.R_DEST, T3.R_PAY
+		FROM 
+			 DRIVER_RST_TBL T1
+			,DRIVERS_TBL T2
+			,RESERVATION_TBL T3
+		WHERE T1.DR_ID = T2.DR_ID
+			AND T1.R_ID = T3.R_ID
+		;
+	
+--3. 이용자중 가장많이 대리운전을 예약한 사용자의 연락처를 찾아주세요 (5점)
+		-- 3.1 예약 전화
+		SELECT
+			RNK, R_TEL, CNT
+		FROM
+		(
+		SELECT 
+			 R_TEL
+			,COUNT(R_TEL) AS CNT
+			,DENSE_RANK() OVER(ORDER BY COUNT(R_TEL) DESC) AS RNK
+		FROM RESERVATION_TBL
+		GROUP BY R_TEL
+		)
+		WHERE RNK = 1
+		;
+		
+		-- 3.2 운행 완료
+		SELECT
+			RNK, R_TEL, CNT
+		FROM 
+		(
+		SELECT T1.R_TEL
+			,COUNT(T1.R_TEL) AS CNT
+			,DENSE_RANK() OVER(ORDER BY COUNT(T1.R_TEL) DESC) AS RNK
+		FROM RESERVATION_TBL T1, FINISH_DRIVE_TBL T2
+		WHERE T1.R_ID = T2.R_ID
+			AND T2.F_GUBUN = 1
+		GROUP BY T1.R_TEL
+		)
+		WHERE RNK = 1
+		;
+	
+--4. 대리운전 기사들의 수익을 가장많은 기사 부터 차례대로 순위를 붙여서 보여 주세요(5점)
+		-- 4.1 대리운전비	
+		SELECT 
+			 A.DR_ID, A.DR_NAME
+			,TO_CHAR(NVL(SUM(B.R_PAY), 0),'FM999,999') AS TLTPAY
+			,DENSE_RANK() OVER(ORDER BY NVL(SUM(B.R_PAY), 0) DESC) AS RNK 
+		FROM
+		(
+			SELECT T1.DR_ID, T1.DR_NAME, T2.R_ID, T2.F_GUBUN
+			FROM DRIVERS_TBL T1, FINISH_DRIVE_TBL T2
+			WHERE T1.DR_ID = T2.DR_ID(+)
+			AND (T2.F_GUBUN = 1 OR T2.F_GUBUN IS NULL)
+		)A
+		,RESERVATION_TBL B
+		WHERE A.R_ID = B.R_ID(+)
+		GROUP BY A.DR_ID, A.DR_NAME
+		;
+		
+		-- 4.2 회사랑 돈 나눈 후의 수익 순위 
+		-- 20,000원 이상 = 8 : 2 /  20,000원 미만 = 9 : 1
+		SELECT 
+			A.DR_ID, A.DR_NAME
+			,NVL(TO_CHAR(SUM(CASE WHEN B.R_PAY >= 20000 THEN B.R_PAY * 0.8
+										ELSE B.R_PAY * 0.9
+				END), 'FM999,999'), 0) AS TLTPAY
+			,DENSE_RANK() OVER(ORDER BY NVL(SUM(CASE WHEN B.R_PAY >= 20000 THEN B.R_PAY * 0.8 ELSE B.R_PAY * 0.9 END), 0) DESC) AS RNK
+		FROM
+		(
+			SELECT T1.DR_ID, T1.DR_NAME, T2.R_ID, T2.F_GUBUN
+			FROM DRIVERS_TBL T1, FINISH_DRIVE_TBL T2
+			WHERE T1.DR_ID = T2.DR_ID(+)
+			AND (T2.F_GUBUN = 1 OR T2.F_GUBUN IS NULL)
+		)A
+		,RESERVATION_TBL B
+		WHERE A.R_ID = B.R_ID(+)
+		GROUP BY A.DR_ID, A.DR_NAME
+		;
+		
+		
+--5. 이용자들중에 대리운전 예약을 한 후 취소를 가장 많이 한 이용자의 핸드폰번호를 보여주세요(5점)
+		-- 5.1 대리기사 할당됐는데 장소에 나타나지않은 건
+		SELECT
+			RNK, R_TEL, CNT
+		FROM
+		(
+		SELECT 
+			 T1.R_TEL
+			,COUNT(T1.R_ID) AS CNT
+			,DENSE_RANK() OVER(ORDER BY COUNT(T1.R_ID) DESC) AS RNK
+		FROM RESERVATION_TBL T1, FINISH_DRIVE_TBL T2
+		WHERE T1.R_ID =  T2.R_ID
+			AND T2.F_GUBUN = 2
+		GROUP BY T1.R_TEL
+		)
+		WHERE RNK = 1
+		;
+		
+		-- 5.2 전화로 예약했지만 기사 할당 X > 손님이 한 건지 기사가 할당안된건지 모르겠지만 일단은 구해보기
+		SELECT 
+		*
+		FROM
+		(
+		SELECT 
+			 T1.R_TEL
+			,COUNT(T1.R_ID) AS CNT
+			,DENSE_RANK() OVER(ORDER BY COUNT(T1.R_ID) DESC) AS RNK
+		FROM RESERVATION_TBL T1, DRIVER_RST_TBL T2, FINISH_DRIVE_TBL T3
+		WHERE T1.R_ID = T2.R_ID(+)
+			AND T1.R_ID = T3.R_ID(+)
+			AND (T3.F_GUBUN = 2 OR T3.F_GUBUN IS NULL)
+		GROUP BY T1.R_TEL
+		)
+		WHERE RNK = 1
+		;
+	
+--6. 대리운전 기사들의 성별로 대리운전결정 건수를 보여주세요(5점)
+		SELECT 
+			 DECODE(T1.DR_GENDER, 'M', '남성', '여성') AS GENDER
+			,COUNT(T2.R_ID) AS CNT
+		FROM DRIVERS_TBL T1, DRIVER_RST_TBL T2
+		WHERE T1.DR_ID = T2.DR_ID
+		GROUP BY T1.DR_GENDER
+		;
+	
+--7. 2018년 5월 2일부터 5월 5일까지 대리기사가 결정된 건수, 정상적으로 완료된 건수, 취쇠된 건수를 보여주세요(5점)
+		SELECT LEVEL + 20180501 AS DATES
+		FROM DUAL
+		CONNECT BY LEVEL < 5
+		;
+
+		-- 7.2 대리기사가 결정된 건수
+		SELECT 
+		 	 TO_CHAR(RST_DATE, 'YYYYMMDD') AS DATES
+			,COUNT(R_ID) AS RST_CNT
+		FROM DRIVER_RST_TBL
+		GROUP BY TO_CHAR(RST_DATE, 'YYYYMMDD') 
+		;
+	
+		-- 7.3 정상적으로 완료된 건수 
+		SELECT 
+		 	 TO_CHAR(F_DATE, 'YYYYMMDD') AS DATES
+			,COUNT(R_ID) AS S_CNT
+		FROM FINISH_DRIVE_TBL
+		WHERE F_GUBUN = 1
+		GROUP BY TO_CHAR(F_DATE, 'YYYYMMDD') 
+		;
+		
+		-- 7.4 취소된 건수
+		SELECT 
+		 	 TO_CHAR(F_DATE, 'YYYYMMDD') AS DATES
+			,COUNT(R_ID) AS C_CNT
+		FROM FINISH_DRIVE_TBL
+		WHERE F_GUBUN = 2
+		GROUP BY TO_CHAR(F_DATE, 'YYYYMMDD') 
+		;
+		
+		--7.5 
+		SELECT 
+			 A.DATES
+			,NVL(B.RST_CNT, 0) AS RST_CNT
+			,NVL(C.S_CNT, 0) AS S_CNT
+			,NVL(D.C_CNT, 0) AS C_CNT
+		FROM
+		(
+		SELECT LEVEL + 20180501 AS DATES
+		FROM DUAL
+		CONNECT BY LEVEL < 5
+		)A,
+		(
+		SELECT 
+		 	 TO_CHAR(RST_DATE, 'YYYYMMDD') AS DATES
+			,COUNT(R_ID) AS RST_CNT
+		FROM DRIVER_RST_TBL
+		GROUP BY TO_CHAR(RST_DATE, 'YYYYMMDD') 
+		)B,
+		(
+		SELECT 
+		 	 TO_CHAR(F_DATE, 'YYYYMMDD') AS DATES
+			,COUNT(R_ID) AS S_CNT
+		FROM FINISH_DRIVE_TBL
+		WHERE F_GUBUN = 1
+		GROUP BY TO_CHAR(F_DATE, 'YYYYMMDD') 
+		)C,
+		(
+		SELECT 
+		 	 TO_CHAR(F_DATE, 'YYYYMMDD') AS DATES
+			,COUNT(R_ID) AS C_CNT
+		FROM FINISH_DRIVE_TBL
+		WHERE F_GUBUN = 2
+		GROUP BY TO_CHAR(F_DATE, 'YYYYMMDD') 
+		)D
+		WHERE A.DATES = B.DATES(+)
+			AND A.DATES = C.DATES(+)
+			AND A.DATES = D.DATES(+)
+		ORDER BY A.DATES
+		;
+		
+--8. 이용자는 대리운전 신청을 하였으나 '대리기사가 결정되지 않아서' 취소된 대리운전 건을 보여주세요(5점)
+		--(이용자핸드폰번호, 출발지, 도착지, 금액)
+		--R0007, R0009 접수는 됐지만 대리기사가 할당되지않은 데이터
+		SELECT T1.R_ID, T1.R_TEL, T1.R_STR, T1.R_DEST, T1.R_PAY
+		FROM RESERVATION_TBL T1, DRIVER_RST_TBL T2
+		WHERE T1.R_ID = T2.R_ID(+)
+			AND T2.R_ID IS NULL
+		;
+	
+--9. 정상적으로 완료된 대리운전중에 가장 시간이 많이 걸린 대리운전 건을 보여주세요(5점)
+		SELECT
+			RNK, R_ID, RST_TIME, F_TIME, OVERTIME
+		FROM
+		(
+		SELECT 
+			 T1.R_ID
+			,TO_CHAR(T2.RST_DATE, 'HH24:MI:SS') AS RST_TIME
+			,TO_CHAR(T1.F_DATE, 'HH24:MI:SS') AS F_TIME
+			,ROUND((TO_DATE(TO_CHAR(T1.F_DATE, 'YYYYMMDD HH24:MI:SS'),'YYYYMMDD HH24:MI:SS') 
+			- TO_DATE(TO_CHAR(T2.RST_DATE, 'YYYYMMDD HH24:MI:SS'),'YYYYMMDD HH24:MI:SS'))*24*60*60,2) || '초' AS OVERTIME
+			,DENSE_RANK() OVER(ORDER BY ROUND((TO_DATE(TO_CHAR(T1.F_DATE, 'YYYYMMDD HH24:MI:SS'),'YYYYMMDD HH24:MI:SS') 
+			- TO_DATE(TO_CHAR(T2.RST_DATE, 'YYYYMMDD HH24:MI:SS'),'YYYYMMDD HH24:MI:SS'))*24*60*60,2) DESC) AS RNK
+		FROM FINISH_DRIVE_TBL T1, DRIVER_RST_TBL T2
+		WHERE T1.R_ID = T2.R_ID
+			AND F_GUBUN = 1
+		)
+		WHERE RNK = 1
+		;
+		
+--10. 대리운전비가 가장 비싼 대리운전을 보여주세요(5점)
+       --(대리기사이름, 출발지, 목적지, 이용자핸드폰, 금액, 완료여부)
+	    SELECT
+			RNK, DR_ID, R_STR, R_DEST, R_TEL, R_PAY
+		FROM
+		(
+		SELECT 
+			 T3.DR_ID, T1.R_STR, T1.R_DEST, T1.R_TEL
+			,TO_CHAR(T1.R_PAY, 'FM999,999') AS R_PAY
+			,DECODE(T2.F_GUBUN, 1, '완료', '취소') AS GUBUN
+			,DENSE_RANK() OVER(ORDER BY T1.R_PAY DESC) AS RNK
+		FROM RESERVATION_TBL T1, FINISH_DRIVE_TBL T2, DRIVERS_TBL T3
+		WHERE T1.R_ID = T2.R_ID
+			AND T2.DR_ID = T3.DR_ID
+		)
+		WHERE RNK = 1
+		;
+
+--B. 패키지 프로시져 - 각 5점
+--1. 대리운전의 업무를 위한 패키지를 하나 만들어주세요 패키지 이름 : PKG_DRIVER  
+
+--2. 위의 패키지에 첫번째 프로시저를 하나 만들어주세요 - 
+        --새로운 대리운전 기사를 등록하는 프로시저를 만들어주세요
+        --대리기사 아이디는 따로 함수로 만들지 말고 프로시저 내부에 로직을 포함시켜주세요
+		SELECT 'DR' || TO_CHAR(NVL(TO_NUMBER(SUBSTR(MAX(DR_ID), 3, 3)), 0) +1, 'FM000') AS NEW_ID
+		FROM DRIVERS_TBL 
+		;
+		
+--3. 위의 패키지에 두번째 프로시저를 만들어주세요
+       --현재 불특정 회원의 POINT가 모두 0원입니다.
+       --프로시저를 사용하여 POINT가 모두 계산 되도록 해주세요
+	   --포인트 성공 건수 3프로 
+		SELECT R_TEL, SUM(NEW_POINT) AS MEM_POINT
+		FROM
+		(
+		-- 건당 포인트 적립
+		SELECT T3.R_TEL, T3.MEM_POINT, ROUND(R_PAY * 0.03) AS NEW_POINT
+		FROM RESERVATION_TBL T1, FINISH_DRIVE_TBL T2, DR_MEMBER_TBL T3
+		WHERE T1.R_ID = T2.R_ID
+			AND T1.R_TEL(+) = T3.R_TEL
+			AND T2.F_GUBUN = 1
+		)
+		GROUP BY R_TEL
+		;
+		
+	   
+	   
+	   
+	   
+--4. 위의 패키지에 세번째 프로시저를 만들어주세요
+      -- 이용자가 대리운전을 요청하는 전화를 하면
+      -- 입력하는 직원은 해당 프로시저에 이용자 연락처만 입력하고 저장하면
+      -- 새로운 이용자이면 DR_MEMBER_TBL에 새롭게 추가하고
+      -- 이미 등록된 이용자이면 사용자 예외처리를 활용하여 에러처리를 해 주세요
+      
+	  -- 등록 여부
+	  SELECT COUNT(R_TEL)
+		FROM DR_MEMBER_TBL
+		WHERE R_TEL =: IN_MEM_TEL
+	
+	  ;
+	  
+	  
+--5   위의 패키지에 네번째 프로시저를 만들어주세요
+      -- 각 요일별로 대리운전 총 매출액을 계산해서 보여주는 프로시저를 만들어 주세요
+      -- 모든 요일
+	  SELECT
+		A.DATES, NVL(B.TLTPRICE, 0)
+	  FROM
+	  (
+		  SELECT 
+		 	 TO_CHAR(TO_DATE(LEVEL+ 191005), 'DAY') AS DATES
+			,TO_CHAR(TO_DATE(LEVEL+ 191005), 'D') AS DAT
+		  FROM DUAL
+		  CONNECT BY LEVEL <8
+	  )A,
+	  (
+		  SELECT 
+			 TO_CHAR(F_DATE, 'DAY') AS DATES
+			,TO_CHAR(NVL(SUM(T1.R_PAY), 0), 'FM999,999') AS TLTPRICE
+		  FROM RESERVATION_TBL T1, FINISH_DRIVE_TBL T2
+		  WHERE T1.R_ID = T2.R_ID
+			AND T2.F_GUBUN = 1
+		  GROUP BY TO_CHAR(F_DATE, 'DAY')
+	  )B
+	  WHERE A.DATES = B.DATES(+)
+	  ORDER BY A.DAT
+	  ;
+	  
+	  SELECT 
+		 TO_CHAR(F_DATE, 'DAY') AS DATES
+		,TO_CHAR(NVL(SUM(T1.R_PAY), 0), 'FM999,999') AS TLTPRICE
+	  FROM RESERVATION_TBL T1, FINISH_DRIVE_TBL T2
+	  WHERE T1.R_ID = T2.R_ID
+		AND T2.F_GUBUN = 1
+	  GROUP BY TO_CHAR(F_DATE, 'DAY')
+	  ;
+	  
+--6. 위의 패키지에 다섯번째 프로시저를 만들어주세요
+     --2018년 5월 2일 부터 5월5일까지 회사와 대리운전기사가 벌어들인 금액을 각각 표시하는 프로시저를 만들어주세요
+     
+     -------------------------------------
+     --    DRDATE       COMAPNY   DRIVER -----------
+     --  2018-05-02      8000      2000
+     --  2018-05-03      20000     5000
+     --  2018-05-04      32000     8000
+     --  2018-05-05      16000     2000
+     -- 위와 같은 형식으로 결과가 보여지도록 해 주세요
+	
+	SELECT 
+		 A.DRDATE
+		,NVL(B.COMPANY, 0) AS COMPANY
+		,NVL(B.DRIVER, 0) AS DRIVER
+	FROM
+	(
+	SELECT TO_CHAR(TO_DATE(LEVEL + 20180501,'YYYY-MM-DD'), 'YYYY-MM-DD') AS DRDATE
+	FROM DUAL
+	CONNECT BY LEVEL < 5
+	)A,
+	(
+	SELECT
+		 TO_CHAR(T2.F_DATE, 'YYYY-MM-DD') AS DATES
+		,TO_CHAR(SUM(CASE WHEN T1.R_PAY >= 20000 THEN T1.R_PAY * 0.8
+									  ELSE T1.R_PAY * 0.9
+			 END), 'FM999,999') AS DRIVER
+		,TO_CHAR(SUM(CASE WHEN T1.R_PAY >= 20000 THEN T1.R_PAY * 0.2
+									 ELSE T1.R_PAY * 0.1
+			 END), 'FM999,999') AS COMPANY
+	FROM RESERVATION_TBL T1, FINISH_DRIVE_TBL T2
+	WHERE T1.R_ID = T2.R_ID
+		AND T2.F_GUBUN = 1
+	GROUP BY TO_CHAR(T2.F_DATE, 'YYYY-MM-DD')
+	)B
+	WHERE A.DRDATE = B.DATES(+)
+	ORDER BY A.DRDATE
+	;
+	
+	
+--C 트리거
+-- 대리운전이 취소가 되면 해당 이용자의 포인트를 10% 차감하는 트리거를 만들어주세요 (10점)
+-- 계산은 원단위까지만 하며 소수점은 반올림한다.
+
